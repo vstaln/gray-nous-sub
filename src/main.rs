@@ -73,7 +73,10 @@ fn read_config() -> Value {
 
 fn write_config(v: &Value) -> std::io::Result<()> {
     std::fs::create_dir_all(state_dir())?;
-    std::fs::write(config_path(), format!("{}\n", serde_json::to_string_pretty(v)?))?;
+    std::fs::write(
+        config_path(),
+        format!("{}\n", serde_json::to_string_pretty(v)?),
+    )?;
     // Key material may live here — lock it down.
     #[cfg(unix)]
     {
@@ -95,14 +98,16 @@ fn cache_credential(params: &Value) {
 
 fn resolve() -> Compat {
     let file = read_config();
-    let base = std::env::var(ENV_BASE).ok()
+    let base = std::env::var(ENV_BASE)
+        .ok()
         .filter(|s| !s.is_empty())
         .or_else(|| file["base_url"].as_str().map(str::to_string))
         .unwrap_or_else(|| DEFAULT_BASE.to_string());
     // The user's own Portal API key: env first, then this plugin's config
     // (written by `setup --key` or the host's credential delivery). Nothing
     // else on the machine is consulted.
-    let key = std::env::var(ENV_KEY).ok()
+    let key = std::env::var(ENV_KEY)
+        .ok()
         .filter(|s| !s.is_empty())
         .or_else(|| file["api_key"].as_str().map(str::to_string))
         .filter(|s| !s.is_empty());
@@ -114,10 +119,17 @@ fn resolve() -> Compat {
 /// Where the active key came from, for `status`. Only this plugin's env var
 /// and config entry are consulted.
 fn key_source_label() -> &'static str {
-    if std::env::var(ENV_KEY).ok().filter(|s| !s.is_empty()).is_some() {
+    if std::env::var(ENV_KEY)
+        .ok()
+        .filter(|s| !s.is_empty())
+        .is_some()
+    {
         return "env NOUS_API_KEY";
     }
-    if read_config()["api_key"].as_str().is_some_and(|s| !s.is_empty()) {
+    if read_config()["api_key"]
+        .as_str()
+        .is_some_and(|s| !s.is_empty())
+    {
         return "config api_key";
     }
     "none"
@@ -138,8 +150,13 @@ fn provider_models(params: &Value) -> Result<Value, Value> {
     }
     // Live catalog only (the documented public `/v1/models`). A failed probe
     // is reported, never papered over with hardcoded model names.
-    let rows = probe_models(&cfg)
-        .map_err(|e| err("unavailable", format!("Nous: model list unavailable ({e})"), true))?;
+    let rows = probe_models(&cfg).map_err(|e| {
+        err(
+            "unavailable",
+            format!("Nous: model list unavailable ({e})"),
+            true,
+        )
+    })?;
     Ok(json!({"models": rows}))
 }
 
@@ -254,7 +271,12 @@ fn handle(intents: &Intents, method: &str, params: &Value) -> Value {
         "command/run" => {
             let argv: Vec<String> = params["argv"]
                 .as_array()
-                .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(Value::as_str)
+                        .map(str::to_string)
+                        .collect()
+                })
                 .unwrap_or_default();
             // Bare `/{NAME}`: empty result — the host's provider-login
             // shortcut switches the session to Nous (codex-sub pattern).
@@ -278,7 +300,9 @@ fn sidecar() -> std::io::Result<()> {
     let mut out = std::io::stdout().lock();
     for line in stdin.lock().lines() {
         let line = line?;
-        let Ok(v) = serde_json::from_str::<Value>(&line) else { continue };
+        let Ok(v) = serde_json::from_str::<Value>(&line) else {
+            continue;
+        };
         let method = v["method"].as_str().unwrap_or("");
         match v.get("id").cloned() {
             None if method == "plugin/shutdown" => return Ok(()),
