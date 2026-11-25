@@ -1,7 +1,7 @@
 //! nous-sub — Gray provider sidecar for Nous Portal.
 //!
 //! Host speaks OpenAI-Responses to a per-turn loopback relay
-//! (`acp_bridge::relay`); `openai_compat` translates to the Nous Portal's
+//! (`gray_acp::relay`); `openai_compat` translates to the Nous Portal's
 //! documented OpenAI-compatible API at `inference-api.nousresearch.com/v1`.
 //!
 //! Config: ~/.gray/nous/config.json  {"base_url","api_key"}
@@ -16,8 +16,8 @@
 use std::io::{BufRead, Write};
 use std::sync::Arc;
 
-use acp_bridge::manifest as pmanifest;
-use acp_bridge::relay::{self, Intents};
+use gray_acp::manifest as pmanifest;
+use gray_acp::relay::{self, Intents};
 use openai_compat::{compat_turn, credential_key, probe_models, Compat};
 use serde_json::{json, Value};
 
